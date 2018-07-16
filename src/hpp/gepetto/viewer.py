@@ -18,14 +18,11 @@
 # <http://www.gnu.org/licenses/>.
 
 import os.path
-import rospkg
 from hpp import quaternion as Quaternion
 from gepetto.corbaserver import Client as GuiClient
 from gepetto import Error as GepettoError
 import math
 import omniORB.any
-
-rospack = rospkg.RosPack()
 
 ## Simultaneous control of hppcorbaserver and gepetto-viewer-server
 #
@@ -60,8 +57,7 @@ class Viewer (object):
         self.displayName = self.robot.displayName
         # Load robot in viewer
         self.buildRobotBodies ()
-        rospack = rospkg.RosPack()
-        packagePath = rospack.get_path (self.robot.packageName)
+        packagePath = "package://" + self.robot.packageName
         packagePath += '/urdf/' + self.robot.urdfName + \
                        self.robot.urdfSuffix + '.urdf'
         if collisionURDF:
@@ -326,8 +322,7 @@ class Viewer (object):
             meshPackageName = package
         if not guiOnly:
             self.problemSolver.loadObstacleFromUrdf (package, filename, prefix+'/')
-        rospack = rospkg.RosPack()
-        packagePath = rospack.get_path (package)
+        packagePath = "package://" + package
         packagePath += '/urdf/' + filename + '.urdf'
         self.client.gui.addUrdfObjects (prefix, packagePath, "",
                                         not self.collisionURDF)
