@@ -74,9 +74,12 @@ class PathPlayer (object):
       if jointName == 0 :
         jointName = "root"
       nameCurve = "path_"+str(pathId)+"_"+jointName
-      self.publisher.client.gui.addCurve(nameCurve,pathPos,color)
-      self.publisher.client.gui.addToGroup(nameCurve,self.publisher.sceneName)
-      self.publisher.client.gui.refresh()
+      try:
+        self.publisher.client.gui.addCurve(nameCurve,pathPos,color)
+        self.publisher.client.gui.addToGroup(nameCurve,self.publisher.sceneName)
+        self.publisher.client.gui.refresh()
+      except:
+	pass
 
     def displayVelocityPath(self,pathId,jointName=0) :
       if jointName == 0 :
@@ -90,8 +93,11 @@ class PathPlayer (object):
         nameCurve = "path_"+str(pathId)+"_root"
       else:
         nameCurve = "path_"+str(pathId)+"_"+jointName
-      self.publisher.client.gui.createGroup(nameCurve)
-      self.publisher.client.gui.addToGroup(nameCurve,self.publisher.sceneName)
+      try:
+        self.publisher.client.gui.createGroup(nameCurve)
+        self.publisher.client.gui.addToGroup(nameCurve,self.publisher.sceneName)
+      except:
+	pass
       t = self.start*self.client.problem.pathLength (pathId)
       while t < length :
         q = self.client.problem.configAtParam (pathId, t)
@@ -105,12 +111,17 @@ class PathPlayer (object):
             color=[v*2.,1,0,1]
           else:
             color=[1,2-(v*2.),0,1]
-          self.publisher.client.gui.addLine(name,last_q,q[0:3],color)
-          self.publisher.client.gui.addToGroup(name,nameCurve)
+	  try:
+            self.publisher.client.gui.addLine(name,last_q,q[0:3],color)
+            self.publisher.client.gui.addToGroup(name,nameCurve)
+	  except:
+	    pass
         last_q = q[0:3]
         t += self.dt
-      self.publisher.client.gui.refresh()
-
+      try:
+        self.publisher.client.gui.refresh()
+      except:
+	pass
 
 
     def toFile(self, pathId, fname):

@@ -53,124 +53,143 @@ class Viewer (object):
         self.robot = problemSolver.robot
         self.collisionURDF = collisionURDF
         self.color=Color()
-        if not viewerClient:
-            viewerClient = GuiClient ()
-            self.createWindowAndScene (viewerClient, "hpp_")
-        self.client = viewerClient
         self.displayName = self.robot.displayName
-        # Load robot in viewer
         self.buildRobotBodies ()
-        rospack = rospkg.RosPack()
-        packagePath = rospack.get_path (self.robot.packageName)
-        packagePath += '/urdf/' + self.robot.urdfName + \
-                       self.robot.urdfSuffix + '.urdf'
-        if collisionURDF:
-            self.client.gui.addUrdfCollision (self.displayName, packagePath, "")
-        else:
-            self.client.gui.addURDF (self.displayName, packagePath, "")
-        self.client.gui.addToGroup (self.displayName, self.sceneName)
-        # create velocity and acceleration arrows :
-        self.displayArrows = displayArrows
-        self.colorVelocity=[0.2,1,0,0.6]
-        self.colorAcceleration = [1,0,0,0.6]
-        self.arrowRadius = 0.01
-        self.arrowMinSize = 0.05
-        self.arrowMaxSize = 1. - self.arrowMinSize
-        if (not ("Vec_Velocity" in self.client.gui.getNodeList())):
-          self.client.gui.addArrow("Vec_Velocity",self.arrowRadius,self.arrowMinSize,self.colorVelocity)
-          self.client.gui.addToGroup("Vec_Velocity",self.sceneName)
-          self.client.gui.setVisibility("Vec_Velocity","OFF")
-          self.client.gui.addArrow("Vec_Acceleration",self.arrowRadius,self.arrowMinSize,self.colorAcceleration)
-          self.client.gui.addToGroup("Vec_Acceleration",self.sceneName)
-          self.client.gui.setVisibility("Vec_Acceleration","OFF")
-        try:
-          self.amax = omniORB.any.from_any(self.problemSolver.client.problem.getParameter("aMax"))
-          self.vmax = omniORB.any.from_any(self.problemSolver.client.problem.getParameter("vMax"))
-        except:
-          print "No values found for velocity and acceleration bounds, use 1 by default"
-          self.amax = 1.0
-          self.vmax = 1.0
-        self.displayCoM = displayCoM
+	try:
+            if not viewerClient:
+                viewerClient = GuiClient ()
+                self.createWindowAndScene (viewerClient, "hpp_")
+            self.client = viewerClient
+            # Load robot in viewer
+            rospack = rospkg.RosPack()
+    
+            packagePath =  "package://" + self.robot.packageName #rospack.get_path (self.robot.packageName)
+            # self.robot.packageNamepackagePath = "/home/mgeisert/devel/install/share/" +  self.robot.packageName #rospack.get_path (self.robot.packageName)
+            packagePath += '/urdf/' + self.robot.urdfName + \
+                           self.robot.urdfSuffix + '.urdf'
+            if collisionURDF:
+                self.client.gui.addUrdfCollision (self.displayName, packagePath, "")
+            else:
+                self.client.gui.addURDF (self.displayName, packagePath, "")
+            self.client.gui.addToGroup (self.displayName, self.sceneName)
+            # create velocity and acceleration arrows :
+            self.displayArrows = displayArrows
+            self.colorVelocity=[0.2,1,0,0.6]
+            self.colorAcceleration = [1,0,0,0.6]
+            self.arrowRadius = 0.01
+            self.arrowMinSize = 0.05
+            self.arrowMaxSize = 1. - self.arrowMinSize
+            if (not ("Vec_Velocity" in self.client.gui.getNodeList())):
+              self.client.gui.addArrow("Vec_Velocity",self.arrowRadius,self.arrowMinSize,self.colorVelocity)
+              self.client.gui.addToGroup("Vec_Velocity",self.sceneName)
+              self.client.gui.setVisibility("Vec_Velocity","OFF")
+              self.client.gui.addArrow("Vec_Acceleration",self.arrowRadius,self.arrowMinSize,self.colorAcceleration)
+              self.client.gui.addToGroup("Vec_Acceleration",self.sceneName)
+              self.client.gui.setVisibility("Vec_Acceleration","OFF")
+            try:
+              self.amax = omniORB.any.from_any(self.problemSolver.client.problem.getParameter("aMax"))
+              self.vmax = omniORB.any.from_any(self.problemSolver.client.problem.getParameter("vMax"))
+            except:
+              print "No values found for velocity and acceleration bounds, use 1 by default"
+              self.amax = 1.0
+              self.vmax = 1.0
+            self.displayCoM = displayCoM
+	except:
+	  print "Error when setting up the display. Continuing without..."
+	  self.displaycom = False
+	  self.displayarrows = False
+	  class fakeClient( object ):
+	    def __init__( self ):
+	      self.gui = "No server..."
+	  self.client = fakeClient()
 
     def createWindowAndScene (self, viewerClient, name):
         self.windowName = "window_" + name
         try:
-            self.windowId = viewerClient.gui.getWindowID (self.windowName)
-        except GepettoError:
-            self.windowId = viewerClient.gui.createWindow (self.windowName)
-        self.sceneName = "%i_scene_%s" % (self.windowId, name)
-        if viewerClient.gui.createGroup (self.sceneName):
-            if not viewerClient.gui.addSceneToWindow (self.sceneName, self.windowId):
-                raise RuntimeError ('Failed to add scene "%s" to window %i ("%s")'%
-                                (self.sceneName, self.windowId, self.windowName))
-
+	    try:
+                self.windowId = viewerClient.gui.getWindowID (self.windowName)
+            except GepettoError:
+                self.windowId = viewerClient.gui.createWindow (self.windowName)
+            self.sceneName = "%i_scene_%s" % (self.windowId, name)
+            if viewerClient.gui.createGroup (self.sceneName):
+                if not viewerClient.gui.addSceneToWindow (self.sceneName, self.windowId):
+                    raise RuntimeError ('Failed to add scene "%s" to window %i ("%s")'%
+                                    (self.sceneName, self.windowId, self.windowName))
+	except:
+	  pass
 
     def buildRobotBodies (self):
-        self.robotBodies = list ()
-        # build list of pairs (robotName, objectName)
-        for j in self.robot.getAllJointNames ():
-            self.robotBodies.extend (map (lambda n:
-                                              (j, self.displayName + "/", n),
-                                          [self.robot.getLinkName (j),]))
-
+	  self.robotBodies = list ()
+          # build list of pairs (robotName, objectName)
+          for j in self.robot.getAllJointNames ():
+              self.robotBodies.extend (map (lambda n:
+                                                (j, self.displayName + "/", n),
+                                            [self.robot.getLinkName (j),]))
     ## Add a landmark
     # \sa gepetto::corbaserver::GraphicalInterface::addLandmark
     def addLandmark (self, linkname, size):
-        return self.client.gui.addLandmark (linkname, size)
+	try:
+          return self.client.gui.addLandmark (linkname, size)
+	except:
+	  pass
 
     ##Display the part of the roadmap used by the solution path
     # \param nameRoadmap : the name of the osgNode added to the scene
     # \param pathID : the id of the path we want to display
     # \param radiusSphere : the radius of the node
     # \param sizeAxis : size of axes (proportionnaly to the radius of the sphere) 0 = only sphere
-    # \param colorNode : the color of the sphere for the nodes (default value : red)
-    # \param colorEdge : the color of the edges (default value : light red)
     # \param joint : the link we want to display the configuration (by defaut, root link of the robot)
     # BE CAREFULL : in the .py file wich init the robot, you must define a valid tf_root (this is the displayed joint by default)
     # notes : the edges are always straight lines and doesn't represent the real path beetwen the configurations of the nodes
     def displayPathMap (self,nameRoadmap,pathID,radiusSphere=0.1,sizeAxis=1,colorNode=[1,0.0,0.0,1.0],colorEdge=[1,0.0,0.0,0.5],joint=0):
-      ps = self.problemSolver
-      gui = self.client.gui
-      robot = self.robot
-      lastPos=0;
-      currentPos=0;
-      # find the link : 
-      if joint == 0 :
-        if robot.rootJointType == 'planar' :
-          joint = robot.tf_root+'_joint'
-      if ps.numberNodes() == 0 :
-        return False
-      if not gui.createRoadmap(nameRoadmap,colorNode,radiusSphere,sizeAxis,colorEdge):
-        return False
-      for i in range(0,len(ps.getWaypoints(pathID))) :	
+      try:
+        ps = self.problemSolver
+        gui = self.client.gui
+        robot = self.robot
+        lastPos=0;
+        currentPos=0;
+        # find the link : 
         if joint == 0 :
-          currentPos = ps.getWaypoints(pathID)[i][0:7]
-          gui.addNodeToRoadmap(nameRoadmap,currentPos) 
-        else : 
-          robot.setCurrentConfig(ps.getWaypoints(pathID)[i])
-          currentPos = robot.getLinkPosition(joint)
-          gui.addNodeToRoadmap(nameRoadmap,currentPos)
-        if i > 0 :
-          gui.addEdgeToRoadmap(nameRoadmap,lastPos[0:3],currentPos[0:3])
-        lastPos = currentPos
-        
-      gui.addToGroup(nameRoadmap,self.sceneName)
-      gui.setVisibility(nameRoadmap,"ALWAYS_ON_TOP")
-      gui.refresh()
-      return True
+          if robot.rootJointType == 'planar' :
+            joint = robot.tf_root+'_joint'
+        if ps.numberNodes() == 0 :
+          return False
+        if not gui.createRoadmap(nameRoadmap,colorNode,radiusSphere,sizeAxis,colorEdge):
+          return False
+        for i in range(0,len(ps.getWaypoints(pathID))) :	
+          if joint == 0 :
+            currentPos = ps.getWaypoints(pathID)[i][0:7]
+            gui.addNodeToRoadmap(nameRoadmap,currentPos) 
+          else : 
+            robot.setCurrentConfig(ps.getWaypoints(pathID)[i])
+            currentPos = robot.getLinkPosition(joint)
+            gui.addNodeToRoadmap(nameRoadmap,currentPos)
+          if i > 0 :
+            gui.addEdgeToRoadmap(nameRoadmap,lastPos[0:3],currentPos[0:3])
+          lastPos = currentPos
+          
+        gui.addToGroup(nameRoadmap,self.sceneName)
+        gui.setVisibility(nameRoadmap,"ALWAYS_ON_TOP")
+        gui.refresh()
+        return True
+      except:
+	return False
+
 
     def addVectorToRoadmap(self,nameRoadmap,radius,index,conf):
-      name = nameRoadmap+"vecRM"+str(index)
-      pos = conf[0:3]
-      quat = self.robot.quaternionFromVector(conf[-6:-3])
-      v = (math.sqrt(conf[-6] * conf[-6] + conf[-5] * conf[-5] + conf[-4] * conf[-4]))/self.vmax
-      length = 0.02+ v*0.2
-      self.client.gui.addArrow(name,radius,length,self.color.black)
-      self.client.gui.applyConfiguration(name,pos+quat)
-      self.client.gui.addToGroup(name,nameRoadmap+"_group")
-      self.client.gui.refresh()
-      return index+1
-
+	try:
+	      name = nameRoadmap+"vecRM"+str(index)
+	      pos = conf[0:3]
+	      quat = self.robot.quaternionFromVector(conf[-6:-3])
+	      v = (math.sqrt(conf[-6] * conf[-6] + conf[-5] * conf[-5] + conf[-4] * conf[-4]))/self.vmax
+	      length = 0.02+ v*0.2
+	      self.client.gui.addArrow(name,radius,length,self.color.black)
+	      self.client.gui.applyConfiguration(name,pos+quat)
+	      self.client.gui.addToGroup(name,nameRoadmap+"_group")
+	      self.client.gui.refresh()
+	      return index+1
+	except:
+		return 0
 
 
     ##Display the roadmap created by problem.solve()
@@ -182,50 +201,52 @@ class Viewer (object):
     # BE CAREFULL : in the .py file wich init the robot, you must define a valid tf_root (this is the displayed joint by default)
     # notes : the edges are always straight lines and doesn't represent the real path beetwen the configurations of the nodes
     def displayRoadmap (self,nameRoadmap,radiusSphere=0.5,sizeAxis=1,colorNode=[1.0,1.0,1.0,1.0],colorEdge=[0.85,0.75,0.15,0.7],joint=0):
-      ps = self.problemSolver
-      gui = self.client.gui
-      robot = self.robot
-      radiusVector = radiusSphere/3.
-      numVector=0
-      # find the link : 
-      if joint == 0 :
-        if robot.rootJointType == 'planar' :
-          joint = robot.tf_root+'_joint'
-      if ps.numberNodes() == 0 :
-        return False
-      if not gui.createRoadmap(nameRoadmap,colorNode,radiusSphere,sizeAxis,colorEdge):
-        return False
-      gui.createGroup(nameRoadmap+"_group")
-      gui.addToGroup(nameRoadmap,nameRoadmap+"_group")
-      # set the start in green and the goal in red :
-      gui.addSphere(nameRoadmap+"start",radiusSphere*1.5,self.color.green)
-      gui.applyConfiguration(nameRoadmap+"start",ps.node(0)[0:7])
-      gui.addToGroup(nameRoadmap+"start",nameRoadmap+"_group")
-      gui.addSphere(nameRoadmap+"goal",radiusSphere*1.5,self.color.red)
-      gui.applyConfiguration(nameRoadmap+"goal",ps.node(1)[0:7])
-      gui.addToGroup(nameRoadmap+"goal",nameRoadmap+"_group")
-      # add all the nodes :
-      for i in range(0,ps.numberNodes()) :	
-        if joint == 0 :
-          gui.addNodeToRoadmap(nameRoadmap,ps.node(i)[0:7])
-          numVector = self.addVectorToRoadmap(nameRoadmap,radiusVector,numVector,ps.node(i))
-        else : 
-          robot.setCurrentConfig(ps.node(i))
-          gui.addNodeToRoadmap(nameRoadmap,robot.getLinkPosition(joint))
-          numVector = self.addVectorToRoadmap(nameRoadmap,radiusVector,numVector,ps.node(i))
-      for i in range(0,ps.numberEdges()) : 
-        if joint == 0 :
-          gui.addEdgeToRoadmap(nameRoadmap,ps.edge(i)[0][0:3],ps.edge(i)[1][0:3])
-        else :
-          robot.setCurrentConfig(ps.edge(i)[0])
-          e0 = robot.getLinkPosition(joint)[0:3]
-          robot.setCurrentConfig(ps.edge(i)[1])
-          e1 = robot.getLinkPosition(joint)[0:3]
-          gui.addEdgeToRoadmap(nameRoadmap,e0,e1)
-      gui.addToGroup(nameRoadmap+"_group",self.sceneName)
-      gui.refresh()
-      return True
-
+	try:
+	      ps = self.problemSolver
+	      gui = self.client.gui
+	      robot = self.robot
+	      radiusVector = radiusSphere/3.
+	      numVector=0
+	      # find the link : 
+	      if joint == 0 :
+	        if robot.rootJointType == 'planar' :
+	          joint = robot.tf_root+'_joint'
+	      if ps.numberNodes() == 0 :
+	        return False
+	      if not gui.createRoadmap(nameRoadmap,colorNode,radiusSphere,sizeAxis,colorEdge):
+	        return False
+	      gui.createGroup(nameRoadmap+"_group")
+	      gui.addToGroup(nameRoadmap,nameRoadmap+"_group")
+	      # set the start in green and the goal in red :
+	      gui.addSphere(nameRoadmap+"start",radiusSphere*1.5,self.color.green)
+	      gui.applyConfiguration(nameRoadmap+"start",ps.node(0)[0:7])
+	      gui.addToGroup(nameRoadmap+"start",nameRoadmap+"_group")
+	      gui.addSphere(nameRoadmap+"goal",radiusSphere*1.5,self.color.red)
+	      gui.applyConfiguration(nameRoadmap+"goal",ps.node(1)[0:7])
+	      gui.addToGroup(nameRoadmap+"goal",nameRoadmap+"_group")
+	      # add all the nodes :
+	      for i in range(0,ps.numberNodes()) :	
+	        if joint == 0 :
+	          gui.addNodeToRoadmap(nameRoadmap,ps.node(i)[0:7])
+	          numVector = self.addVectorToRoadmap(nameRoadmap,radiusVector,numVector,ps.node(i))
+	        else : 
+	          robot.setCurrentConfig(ps.node(i))
+	          gui.addNodeToRoadmap(nameRoadmap,robot.getLinkPosition(joint))
+	          numVector = self.addVectorToRoadmap(nameRoadmap,radiusVector,numVector,ps.node(i))
+	      for i in range(0,ps.numberEdges()) : 
+	        if joint == 0 :
+	          gui.addEdgeToRoadmap(nameRoadmap,ps.edge(i)[0][0:3],ps.edge(i)[1][0:3])
+	        else :
+	          robot.setCurrentConfig(ps.edge(i)[0])
+	          e0 = robot.getLinkPosition(joint)[0:3]
+	          robot.setCurrentConfig(ps.edge(i)[1])
+	          e1 = robot.getLinkPosition(joint)[0:3]
+	          gui.addEdgeToRoadmap(nameRoadmap,e0,e1)
+	      gui.addToGroup(nameRoadmap+"_group",self.sceneName)
+	      gui.refresh()
+	      return True
+	except:
+		return False
 	
 
     ##build the roadmap and diplay it during construction
@@ -242,7 +263,6 @@ class Viewer (object):
       import time
       ps = self.problemSolver
       problem = self.problemSolver.client.problem
-      gui = self.client.gui
       robot = self.robot
       radiusVector = radiusSphere/3.
       # find the link : 
@@ -266,21 +286,34 @@ class Viewer (object):
         if it == numberIt :
           for i in range(beginNode,ps.numberNodes()) :	
             if joint == 0 :
-              gui.addNodeToRoadmap(nameRoadmap,ps.node(i)[0:7])
+	      try:
+                gui = self.client.gui
+                gui.addNodeToRoadmap(nameRoadmap,ps.node(i)[0:7])
+	      except:
+		pass
               numVector = self.addVectorToRoadmap(nameRoadmap,radiusVector,numVector,ps.node(i))
             else : 
               robot.setCurrentConfig(ps.node(i))
-              gui.addNodeToRoadmap(nameRoadmap,robot.getLinkPosition(joint)) 
+	      try:
+                gui.addNodeToRoadmap(nameRoadmap,robot.getLinkPosition(joint)) 
+	      except:
+		pass
               numVector = self.addVectorToRoadmap(nameRoadmap,radiusVector,numVector,ps.node(i))
           for i in range(beginEdge,ps.numberEdges()) : 
             if joint == 0 :
-              gui.addEdgeToRoadmap(nameRoadmap,ps.edge(i)[0][0:3],ps.edge(i)[1][0:3])
+	      try:
+	        gui.addEdgeToRoadmap(nameRoadmap,ps.edge(i)[0][0:3],ps.edge(i)[1][0:3])
+	      except:
+		pass
             else :
               robot.setCurrentConfig(ps.edge(i)[0])
               e0 = robot.getLinkPosition(joint)[0:3]
               robot.setCurrentConfig(ps.edge(i)[1])
               e1 = robot.getLinkPosition(joint)[0:3]
-              gui.addEdgeToRoadmap(nameRoadmap,e0,e1)
+	      try:
+                gui.addEdgeToRoadmap(nameRoadmap,e0,e1)
+	      except:
+		pass
           beginNode = ps.numberNodes() 
           beginEdge = ps.numberEdges() 
           it = 1
@@ -288,23 +321,26 @@ class Viewer (object):
           it = it + 1
       problem.finishSolveStepByStep()
 			#display new edge (node ?) added by finish()
-      for i in range(beginNode,ps.numberNodes()) :	
-        if joint == 0 :
-          gui.addNodeToRoadmap(nameRoadmap,ps.node(i)[0:7]) 
-          numVector = self.addVectorToRoadmap(nameRoadmap,radiusVector,numVector,ps.node(i))
-        else : 
-          robot.setCurrentConfig(ps.node(i))
-          gui.addNodeToRoadmap(nameRoadmap,robot.getLinkPosition(joint)) 
-          numVector = self.addVectorToRoadmap(nameRoadmap,radiusVector,numVector,ps.node(i))
-      for i in range(beginEdge,ps.numberEdges()) : 
-        if joint == 0 :
-          gui.addEdgeToRoadmap(nameRoadmap,ps.edge(i)[0][0:3],ps.edge(i)[1][0:3])
-        else :
-          robot.setCurrentConfig(ps.edge(i)[0])
-          e0 = robot.getLinkPosition(joint)[0:3]
-          robot.setCurrentConfig(ps.edge(i)[1])
-          e1 = robot.getLinkPosition(joint)[0:3]
-          gui.addEdgeToRoadmap(nameRoadmap,e0,e1)
+      try:
+        for i in range(beginNode,ps.numberNodes()) :	
+          if joint == 0 :
+            gui.addNodeToRoadmap(nameRoadmap,ps.node(i)[0:7]) 
+            numVector = self.addVectorToRoadmap(nameRoadmap,radiusVector,numVector,ps.node(i))
+          else : 
+            robot.setCurrentConfig(ps.node(i))
+            gui.addNodeToRoadmap(nameRoadmap,robot.getLinkPosition(joint)) 
+            numVector = self.addVectorToRoadmap(nameRoadmap,radiusVector,numVector,ps.node(i))
+        for i in range(beginEdge,ps.numberEdges()) : 
+          if joint == 0 :
+            gui.addEdgeToRoadmap(nameRoadmap,ps.edge(i)[0][0:3],ps.edge(i)[1][0:3])
+          else :
+            robot.setCurrentConfig(ps.edge(i)[0])
+            e0 = robot.getLinkPosition(joint)[0:3]
+            robot.setCurrentConfig(ps.edge(i)[1])
+            e1 = robot.getLinkPosition(joint)[0:3]
+            gui.addEdgeToRoadmap(nameRoadmap,e0,e1)
+      except:
+	pass 
       problem.optimizePath(problem.numberPaths()-1)
       tStop = time.time()
       return tStop-tStart
@@ -327,11 +363,15 @@ class Viewer (object):
         if not guiOnly:
             self.problemSolver.loadObstacleFromUrdf (package, filename, prefix+'/')
         rospack = rospkg.RosPack()
-        packagePath = rospack.get_path (package)
+        packagePath = "package://" + package #rospack.get_path (package)
+        #packagePath = "/home/mgeisert/devel/install/share/hpp-rbprm-corba/" #rospack.get_path (package)
         packagePath += '/urdf/' + filename + '.urdf'
-        self.client.gui.addUrdfObjects (prefix, packagePath, "",
-                                        not self.collisionURDF)
-        self.client.gui.addToGroup (prefix, self.sceneName)
+	try:
+          self.client.gui.addUrdfObjects (prefix, packagePath, "",
+                                          not self.collisionURDF)
+          self.client.gui.addToGroup (prefix, self.sceneName)
+	except:
+	  pass
         self.computeObjectPosition ()
 
     ## Move Obstacle
@@ -351,14 +391,18 @@ class Viewer (object):
     #  gepetto-viewer-server.
     def computeObjectPosition (self):
         # compute object positions
+      try:
         objects = self.problemSolver.getObstacleNames (True, False)
         for o in objects:
             pos = self.problemSolver.getObstaclePosition (o)
             self.client.gui.applyConfiguration (o, pos)
         self.client.gui.refresh ()
+      except:
+	pass
 
     def publishRobots (self):
-        self.robot.setCurrentConfig (self.robotConfig)
+      self.robot.setCurrentConfig (self.robotConfig)
+      try:
         for j, prefix, o in self.robotBodies:
             pos = self.robot.getLinkPosition (j)
             objectName = prefix + o
@@ -398,6 +442,8 @@ class Viewer (object):
                     self.client.gui.addToGroup(name,self.sceneName)
                 self.client.gui.applyConfiguration(name,self.robot.getCenterOfMass()+[0,0,-1,0])
         self.client.gui.refresh ()
+      except:
+	pass
 
     def __call__ (self, args):
         self.robotConfig = args
@@ -406,12 +452,17 @@ class Viewer (object):
     ## Start a screen capture
     # \sa gepetto::corbaserver::GraphicalInterface::startCapture
     def startCapture (self, filename, extension):
+      try:
         return self.client.gui.startCapture (self.windowId, filename, extension)
-
+      except:
+	pass
     ## Stop a screen capture
     # \sa gepetto::corbaserver::GraphicalInterface::stopCapture
     def stopCapture (self):
+      try:
         return self.client.gui.stopCapture (self.windowId)
+      except:
+	pass
 
 ## Helper class 
 class Color(object):
