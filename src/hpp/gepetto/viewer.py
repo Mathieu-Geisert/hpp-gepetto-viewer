@@ -18,14 +18,11 @@
 # <http://www.gnu.org/licenses/>.
 
 import os.path
-import rospkg
 from hpp import quaternion as Quaternion
 from gepetto.corbaserver import Client as GuiClient
 from gepetto import Error as GepettoError
 import math
 import omniORB.any
-
-rospack = rospkg.RosPack()
 
 ## Simultaneous control of hppcorbaserver and gepetto-viewer-server
 #
@@ -60,11 +57,8 @@ class Viewer (object):
                 viewerClient = GuiClient ()
                 self.createWindowAndScene (viewerClient, "hpp_")
             self.client = viewerClient
-            # Load robot in viewer
-            rospack = rospkg.RosPack()
-    
-            packagePath =  "package://" + self.robot.packageName #rospack.get_path (self.robot.packageName)
-            # self.robot.packageNamepackagePath = "/home/mgeisert/devel/install/share/" +  self.robot.packageName #rospack.get_path (self.robot.packageName)
+            # Load robot in viewer   
+            packagePath =  "package://" + self.robot.packageName
             packagePath += '/urdf/' + self.robot.urdfName + \
                            self.robot.urdfSuffix + '.urdf'
             if collisionURDF:
@@ -362,9 +356,7 @@ class Viewer (object):
             meshPackageName = package
         if not guiOnly:
             self.problemSolver.loadObstacleFromUrdf (package, filename, prefix+'/')
-        rospack = rospkg.RosPack()
-        packagePath = "package://" + package #rospack.get_path (package)
-        #packagePath = "/home/mgeisert/devel/install/share/hpp-rbprm-corba/" #rospack.get_path (package)
+        packagePath = "package://" + package
         packagePath += '/urdf/' + filename + '.urdf'
 	try:
           self.client.gui.addUrdfObjects (prefix, packagePath, "",
